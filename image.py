@@ -32,7 +32,7 @@ def mask(image, regions):
         regions = (regions,)
     canvas = ImageDraw.Draw(image)
     for reg in regions:
-        params = (int(reg[0]), int(reg[1]), int(reg[0]) + int(reg[2]), int(reg[1]) + int(reg[3]))
+        params = [int(reg[1]), int(reg[0]), int(reg[1]) + int(reg[2]), int(reg[0]) + int(reg[3])]
         canvas.rectangle(params, fill="#000000")
     del canvas
 

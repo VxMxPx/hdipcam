@@ -34,6 +34,11 @@ def initaruments():
         type=float,
         help="Level of difference to be considered motion.")
     aparse.add_argument(
+        "-f", "--fps",
+        default=2,
+        type=int,
+        help="Frames per second (not recomended more than 4).")
+    aparse.add_argument(
         "-p", "--pause",
         default=1,
         type=int,
@@ -45,7 +50,7 @@ def initaruments():
     aparse.add_argument(
         "--temp",
         default="./temp",
-        help="Temporary folder. WARNING: content will be removed."
+        help="Temporary folder. WARNING: content will be removed. "
         "(Start with dot for relative)")
     aparse.add_argument(
         "--storage",

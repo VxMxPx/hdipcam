@@ -25,7 +25,7 @@ def runtests(opt, stream):
                     image2,
                     "%s // %s" % (time.strftime("%Y-%m-%d %H:%M:%S"), difference)
                 ),
-                opt.temp
+                opt.storage
             )
             logging.info("!! Motion detected: %s" % difference)
         else:
