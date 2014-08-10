@@ -9,7 +9,7 @@ class Stream(object):
     Access cam stream.
     """
     def __init__(self, url, method):
-        self.connection = http.client.HTTPConnection(url, timeout=10)
+        self.connection = http.client.HTTPConnection(url)
         self._method = method
 
     def getimagebytes(self):

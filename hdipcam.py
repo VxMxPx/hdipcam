@@ -76,6 +76,10 @@ def initaruments():
         "--test",
         type=int,
         help="Run in test mode, save N of images in comparison.")
+    aparse.add_argument(
+        "--record",
+        type=int,
+        help="Record for N seconds.")
     return aparse.parse_args()
 
 def checkdirs(opt):
@@ -121,6 +125,13 @@ def runapp(opt):
     streami = stream.Stream(opt.ip, opt.uri % (opt.user, opt.password))
     if opt.test:
         test.runtests(opt, streami)
+    elif opt.record:
+        print(opt.record)
+        try:
+            recorder.Recorder(opt, streami).record(timelimit=opt.record)
+        except KeyboardInterrupt:
+            recorder.emptytemp(opt.temp)
+            logging.info("Will empty the temp directory. Bye!")
     else:
         try:
             recorder.Recorder(opt, streami).watchdog()

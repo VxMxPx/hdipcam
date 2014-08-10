@@ -21,22 +21,20 @@ class Recorder(object):
         self._timestop = round(1000 / (opt.fps * 1000), 4)
         self._fps = opt.fps
 
-    def captureframe(self, position):
+    def captureframe(self, position, timelimit=None):
         """
         Save single image, as *position* to temp folder.
         """
         logging.debug("Frame: %s", position)
         try:
             frame = image.frombytes(self._stream.getimagebytes())
-        except Exception:
+        except Exception as exc:
             self._bad_requests += 1
-            logging.warning("Request timeout.")
+            logging.warning("Failed to get image: %s", str(exc))
             return
-        else:
-            if self._bad_requests > 0:
-                self._bad_requests -= 1
+        self._bad_requests = 0
         diff = 0.0
-        if position % self._fps == 0 or position == 1:
+        if not timelimit and (position % self._fps == 0 or position == 1):
             framem = copy.copy(frame)
             if self._keyframe:
                 if self._mask:
@@ -49,9 +47,9 @@ class Recorder(object):
                     self._strikes = self._strikes -1
             self._keyframe = framem
         saveframe(frame, self._temp, position,
-                  params=(time.strftime("%Y-%m-%d %H:%M:%S"), diff, position))
+                  params=(time.strftime("%Y-%m-%d %H:%M:%S"), round(diff, 4), position))
 
-    def record(self, startat=8):
+    def record(self, startat=1, timelimit=None):
         """
         Start the recording process.
         Clear temp folder, produce movie.
@@ -62,25 +60,29 @@ class Recorder(object):
         self._bad_requests = 0
         self._strikes = self._def_strikes
         while True:
-            proc = threading.Thread(target=self.captureframe, args=(k,))
-            proc.start()
+            proc = threading.Thread(
+                target=self.captureframe, args=(k, timelimit))
             threads.append(proc)
+            proc.start()
             logging.debug("Strikes: %s", self._strikes)
-            if k > startat + 4 and not self._keyframe:
-                logging.warning("Round %d and still no image. "
-                                "Waiting 15 seconds to recover.", k)
-                time.sleep(15)
-            if self._bad_requests > 10:
-                logging.warning("More than 20 bad request. Terminated.")
+            # if k > startat + self._fps and not self._keyframe:
+            #     logging.warning("Round %d and still no image. "
+            #                     "Waiting 15 seconds to recover.", k)
+            #     time.sleep(15)
+            if self._bad_requests > 20:
+                logging.warning("More than 20 bad request in a row. Terminated.")
                 break
             if self._strikes == 0:
                 logging.info("Out of strikes. Recoding stopped.")
                 break
+            if timelimit and k * self._timestop > timelimit:
+                logging.info("Time limited recoding. Done.")
+                break
             time.sleep(self._timestop)
             k += 1
 
-        for proc in threads:
-            proc.join()
+        [proc.join() for proc in threads]
+        # time.sleep(5)
         producemovie(self._temp, self._fps, self._storage)
         emptytemp(self._temp)
 
@@ -136,6 +138,8 @@ def saveframe(frame, dest, filename,
     """
     Save image with watermark.
     """
+    filename = str(filename)
+    filename = filename.rjust(12, "0")
     image.watermark(frame, caption % params)
     image.save(frame, dest, filename)
 
@@ -144,10 +148,14 @@ def producemovie(temp, fps, storage):
     Call system ffmpeg to merge images into movie.
     """
     logging.info("Starting to produce movie.")
-    temp = temp + r"%d.jpg"
+    temp = temp + r"'*.jpg'"
     storage = storage + ("%s.mp4" % time.strftime("%Y-%m-%d-%H-%M-%S"))
     subprocess.call(
-        "ffmpeg -r %s -i %s -framerate 23 -c:v libx264 %s" % (fps, temp, storage),
+        # "ffmpeg -r %s -i %s -framerate 23 -c:v libx264
+        # %s" % (fps, temp, storage),
+        "ffmpeg -r %s -f image2 -pattern_type glob -i "
+        "%s -c:v libx264 %s"
+        % (fps, temp, storage),
         shell=True)
 
 
