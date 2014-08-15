@@ -142,6 +142,12 @@ Run in test mode, save N of images to storage folder for comparison.
 
     --test TEST
 
+### Record
+
+Start recording for N seconds.
+
+    --record RECORD
+
 ## License
 
 The hdipcam application is licensed under the GPL-3.0 or later.
